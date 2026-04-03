@@ -1,0 +1,25 @@
+SUBROUTINE CUSTOMER.LOOKUP(IN.CUST.ID, CUST.REC, ERR.MSG)
+
+* OUT.CUST.ID and CUST.REC are outputs.
+
+    OUT.CUST.ID = ""
+    CUST.REC    = ""
+    ERR.MSG     = ""
+
+    OPEN "CUSTOMER" TO F.CUST ELSE
+        ERR.MSG = "Cannot open CUSTOMER file"
+        RETURN
+    END
+
+    IF IN.CUST.ID # "" THEN
+        READ CUST.REC FROM F.CUST, IN.CUST.ID ELSE
+            ERR.MSG = "Customer not found: " : IN.CUST.ID
+            RETURN
+        END
+        OUT.CUST.ID = IN.CUST.ID
+        RETURN
+    END
+
+
+    RETURN
+END

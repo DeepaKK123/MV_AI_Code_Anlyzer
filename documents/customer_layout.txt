@@ -1,0 +1,11 @@
+ORDER FILE LAYOUT
+=================
+File: CUSTOMER
+Dictionary: CUSTOMER.DICT
+
+Attribute 1: CUSTOMER.NAME    - Name of the customer.
+Attribute 2: ADDRESS          - MV address info 
+Attribute 3: CITY             - city name
+Attribute 4: STATE            - state
+Attribute 5: ZIP              - Zip code
+Attribute 6: PHONE            - Phone number

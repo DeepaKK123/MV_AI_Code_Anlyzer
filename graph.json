@@ -1,0 +1,113 @@
+{
+  "directed": true,
+  "multigraph": false,
+  "graph": {},
+  "nodes": [
+    {
+      "file_path": "mv_source\\CHECK.INVENTORY",
+      "opens": [
+        "INV"
+      ],
+      "readu_files": [],
+      "unclosed": true,
+      "loop_lines": [],
+      "reads": [],
+      "writes": [],
+      "id": "CHECK"
+    },
+    {
+      "file_path": "mv_source\\CUSTOMER.LOOKUP",
+      "opens": [
+        "F"
+      ],
+      "readu_files": [],
+      "unclosed": true,
+      "loop_lines": [],
+      "reads": [],
+      "writes": [],
+      "id": "CUSTOMER"
+    },
+    {
+      "file_path": "mv_source\\GET.CUSTOMER.INFO",
+      "opens": [
+        "CLIENTS"
+      ],
+      "readu_files": [],
+      "unclosed": true,
+      "loop_lines": [],
+      "reads": [],
+      "writes": [],
+      "id": "GET.CUSTOMER"
+    },
+    {
+      "file_path": "mv_source\\GET.ORDER.DETAILS",
+      "opens": [
+        "ORDERS"
+      ],
+      "readu_files": [],
+      "unclosed": true,
+      "loop_lines": [],
+      "reads": [],
+      "writes": [],
+      "id": "GET.ORDER"
+    },
+    {
+      "file_path": "mv_source\\INV.UPDATE",
+      "opens": [
+        "INV"
+      ],
+      "readu_files": [],
+      "unclosed": false,
+      "loop_lines": [
+        28
+      ],
+      "reads": [],
+      "writes": [],
+      "id": "INV"
+    },
+    {
+      "file_path": "mv_source\\ORD.VALIDATE",
+      "opens": [
+        "CUST"
+      ],
+      "readu_files": [],
+      "unclosed": false,
+      "loop_lines": [],
+      "reads": [],
+      "writes": [],
+      "id": "ORD"
+    },
+    {
+      "file_path": "mv_source\\ORDER.LOOKUP",
+      "opens": [
+        "F",
+        "F"
+      ],
+      "readu_files": [],
+      "unclosed": true,
+      "loop_lines": [
+        30
+      ],
+      "reads": [],
+      "writes": [],
+      "id": "ORDER"
+    },
+    {
+      "file_path": "EXTERNAL",
+      "opens": [],
+      "readu_files": [],
+      "unclosed": false,
+      "loop_lines": [],
+      "reads": [],
+      "writes": [],
+      "id": "REORDER.TRIGGER"
+    }
+  ],
+  "edges": [
+    {
+      "relation": "calls",
+      "source": "INV",
+      "target": "REORDER.TRIGGER"
+    }
+  ]
+}

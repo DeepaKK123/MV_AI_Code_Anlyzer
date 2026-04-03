@@ -1,0 +1,44 @@
+SUBROUTINE LOOKUP.ORDERS.BY.CUST(CUSTNUM, ORDER.LIST, NO.ORDERS, ERR.MSG)
+
+   ERR.MSG = ""
+   ORDER.LIST = ""
+   NO.ORDERS = 0
+
+   * Open CUSTOMER and ORDERS files
+   OPEN "CUSTOMER" TO F.CUSTOMER ELSE
+      ERR.MSG = "Cannot open CUSTOMERS file"
+      RETURN
+   END
+
+   OPEN "ORDERS" TO F.ORDERS ELSE
+      ERR.MSG = "Cannot open ORDERS file"
+      RETURN
+   END
+
+   * Verify customer exists
+   READ CUST.REC FROM F.CUSTOMER, CUSTNUM ELSE
+      ERR.MSG = "Customer not found: " : CUSTNUM
+      RETURN
+   END
+
+   * Select orders for this customer
+   * Assumes ORDERS file attribute 1 contains customer number
+   CMD = "SELECT ORDERS WITH @ID LIKE " : OCONV(CUSTNUM, "MCU") : "*"
+   EXECUTE CMD CAPTURING SELECT.LIST
+
+   * Process matching orders
+   LOOP
+      READNEXT ORDNUM ELSE EXIT
+      READ ORDER.REC FROM F.ORDERS, ORDNUM ELSE CONTINUE
+      
+      * Build formatted order list
+      ORDER.LIST<-1> = ORDNUM : VM : 
+                      OCONV(ORDER.REC<2>, "D2/") : VM :
+                      OCONV(DCOUNT(ORDER.REC<4>, VM), "R(0)") : VM :
+                      OCONV(CALC.ORDER.TOTAL(ORDNUM), "MD2")
+      
+      NO.ORDERS += 1
+   REPEAT
+
+RETURN
+END

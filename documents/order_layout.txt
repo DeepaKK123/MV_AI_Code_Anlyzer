@@ -1,0 +1,27 @@
+ORDER FILE LAYOUT
+=================
+File: ORDERS
+Dictionary: ORD.DICT
+
+Attribute 1: ORDER.ID        - Unique order identifier (e.g. ORD-2024-001)
+Attribute 2: CUSTOMER.ID     - Links to CUSTOMERS file
+Attribute 3: ITEM.ID         - Product/item identifier
+Attribute 4: QTY.ORDERED     - Quantity requested by customer
+Attribute 5: ORDER.DATE      - Date order was placed (internal format)
+Attribute 6: STATUS          - Current order status: VALID, PENDING, SHIPPED, CANCELLED
+Attribute 7: TOTAL.VALUE     - Calculated order total (currency)
+
+INVENTORY FILE LAYOUT
+=====================
+File: INVENTORY
+Attribute 1: QTY.ON.HAND     - Current stock quantity
+Attribute 2: REORDER.LEVEL   - Minimum stock before reorder trigger
+Attribute 3: UNIT.COST       - Cost per unit
+Attribute 4: SUPPLIER.ID     - Links to SUPPLIERS file
+
+BUSINESS RULES
+==============
+- Orders cannot be processed if customer status is INACTIVE
+- Inventory must be locked (READU) before deducting quantity to prevent overselling
+- If stock falls below REORDER.LEVEL, REORDER.TRIGGER subroutine must be called
+- All file handles must be closed before RETURN to prevent resource leaks

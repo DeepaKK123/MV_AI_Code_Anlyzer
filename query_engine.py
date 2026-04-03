@@ -36,9 +36,6 @@ GRAPH DATA:
 QUESTION:
 {question}
 
-IMPORTANT: Focus your answer specifically on the subroutine mentioned in the question.
-Do not describe other subroutines unless they are directly called by the target subroutine.
-
 Reply concisely covering:
 1. What the code does (plain English)
 2. Affected subroutines and files
@@ -117,48 +114,6 @@ class MVAnalysisEngine:
         self.graph = load_graph(graph_path)
         print("  Engine ready.")
 
-    def _get_relevant_docs(self, question: str, subroutine_name: str = None) -> list:
-        """
-        Retrieve relevant document chunks from ChromaDB.
-        If subroutine_name is given, prioritise chunks from that exact file.
-        """
-        # Standard semantic retrieval
-        relevant_docs = self.retriever.invoke(question)
-
-        if subroutine_name and subroutine_name.strip():
-            target = subroutine_name.strip().upper()
-
-            # Split retrieved docs into exact file match vs others
-            matching = [
-                d for d in relevant_docs
-                if target in d.metadata.get("source", "").upper()
-            ]
-            others = [
-                d for d in relevant_docs
-                if target not in d.metadata.get("source", "").upper()
-            ]
-
-            # Also do a direct similarity search scoped to the subroutine name
-            direct_docs = self.vectorstore.similarity_search(subroutine_name, k=3)
-            direct_matching = [
-                d for d in direct_docs
-                if target in d.metadata.get("source", "").upper()
-            ]
-
-            # Combine: exact file chunks first, then semantic results
-            # Deduplicate by first 100 chars of content
-            seen = set()
-            combined = []
-            for d in direct_matching + matching + others:
-                key = d.page_content[:100]
-                if key not in seen:
-                    seen.add(key)
-                    combined.append(d)
-
-            return combined[:5]
-
-        return relevant_docs
-
     def prepare(self, question: str, subroutine_name: str = None) -> dict:
         """
         Step 1 — Run RAG retrieval + graph lookup eagerly.
@@ -169,8 +124,8 @@ class MVAnalysisEngine:
             sources - list of source file paths retrieved from RAG
             impact  - dependency graph data (empty dict if no subroutine given)
         """
-        # Step 1: Retrieve relevant docs — prioritise exact file if subroutine given
-        relevant_docs = self._get_relevant_docs(question, subroutine_name)
+        # Step 1: Semantic retrieval from RAG store
+        relevant_docs = self.retriever.invoke(question)
         context = "\n\n---\n\n".join(
             [f"[Source: {d.metadata.get('source', 'unknown')}]\n{d.page_content}"
              for d in relevant_docs]

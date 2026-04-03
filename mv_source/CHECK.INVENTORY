@@ -1,0 +1,64 @@
+* ============================================================
+* CHECK.INVENTORY
+* ============================================================
+* Retrieve stock information for a single INVENTORY item.
+*
+* Arguments:
+*   ARG(1) = INPUT.DATA   : [0]=ITEM.ID
+*   ARG(2) = OUTPUT.DATA  : VM-delimited inventory fields
+*   ARG(3) = STATUS       : "OK" or "ERROR:<message>"
+*
+* INVENTORY record layout:
+*   1  INV_DATE
+*   2  INV_TIME
+*   3  PROD_NAME
+*   4  FEATURES
+*   5  COLOR
+*   6  QTY
+*   7  PRICE
+*   8  REORDER
+* ============================================================
+
+SUBROUTINE CHECK.INVENTORY(INPUT.DATA, OUTPUT.DATA, STATUS)
+
+   VM = CHAR(253)
+
+   * ── Parse input ─────────────────────────────────────────
+   ITEM.ID = INPUT.DATA
+
+   IF ITEM.ID = "" THEN
+      STATUS = "ERROR:ITEM.ID is required"
+      RETURN
+   END
+
+   * ── Open INVENTORY file ─────────────────────────────────
+   OPEN "INVENTORY" TO INV.FILE ELSE
+      STATUS = "ERROR:Cannot open INVENTORY file"
+      RETURN
+   END
+
+   * ── Read record ──────────────────────────────────────────
+   READ INV.REC FROM INV.FILE, ITEM.ID ELSE
+      STATUS = "ERROR:Item ":ITEM.ID:" not found in inventory"
+      RETURN
+   END
+
+   * ── Extract fields ───────────────────────────────────────
+   I.INV_DATE     = INV.REC<1>
+   I.INV_TIME = INV.REC<2>
+   I.PROD_NAME    = INV.REC<3>
+   I.FEATURES      = INV.REC<4>
+   I.COLOR  = INV.REC<5>
+   I.QTY = INV.REC<6>
+   I.PRICE   = INV.REC<7>
+   I.REORDER = INV.REC<8>
+
+   * Default reorder point if not set
+   IF I.REORDER = "" THEN I.REORDER = "0"
+
+   * ── Pack output ──────────────────────────────────────────
+   OUTPUT.DATA = ITEM.ID:@VM:I.INV_DATE:@VM:I.INV_TIME:@VM:I.PROD_NAME:@VM:I.FEATURES:@VM:I.COLOR:@VM:I.QTY :@VM:I.PRICE:@VM:I.REORDER
+
+   STATUS = "OK"
+   RETURN
+END

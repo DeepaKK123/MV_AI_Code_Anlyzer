@@ -1,0 +1,65 @@
+* ============================================================
+* GET.CUSTOMER.INFO
+* ============================================================
+* Retrieve a single CLIENT record and return its fields as
+* a VM-delimited output string.
+*
+* Arguments (3-arg convention):
+*   ARG(1) = INPUT.DATA   : VM-delimited  [0]=CLIENT.ID
+*   ARG(2) = OUTPUT.DATA  : VM-delimited  (populated below)
+*   ARG(3) = STATUS       : "OK" or "ERROR:<message>"
+*
+* CLIENTS record layout (field# = DICT position):
+*   1  FNAME
+*   2  LNAME
+*   3  COMPANY
+*   4  ADDRESS       
+*   5  CITY     
+*   6  STATE       
+*   7  ZIP_CODE     
+*   8  COUNTRY
+*   9  PHONE_NUM
+*   10 PHONE_TYPE
+* ============================================================
+SUBROUTINE GET.CUSTOMER.INFO(INPUT.DATA, OUTPUT.DATA, STATUS)
+    CLIENT.ID = INPUT.DATA
+    IF CLIENT.ID  = "" THEN
+      STATUS = "ERROR:CLIENT.ID  is required"
+      RETURN
+    END
+    OPEN "CLIENTS" TO CLIENTS.FILE ELSE
+        ERR.MSG = "Cannot open CLIENTS file"
+        RETURN
+    END
+    VM = CHAR(253)
+    SVM = CHAR(252)
+    
+    PRINT CLIENT.ID
+   * ── Read record ──────────────────────────────────────────
+    * Validate ID exists
+    READ CLIENT.REC FROM CLIENTS.FILE, CLIENT.ID ELSE
+      STATUS = "ERROR:Customer ":CLIENT.ID:" not found"
+      RETURN
+   END
+    * ── Extract fields ───────────────────────────────────────
+    * Copy all fields matching your DICT exactly
+    FNAME     = CLIENT.REC<1> ;*  FNAME (field 1)
+    LNAME     = CLIENT.REC<2>  ;* LNAME (field 2)  
+    COMPANY   = CLIENT.REC<3>  ;* COMPANY (field 3)
+    ADDRESS   = CLIENT.REC<4>  ;* ADDRESS (field 4)
+    CITY      = CLIENT.REC<5>  ;* CITY (field 5)
+    STATE     = CLIENT.REC<6>  ;* STATE (field 6)
+    ZIP_CODE  = CLIENT.REC<7>  ;* ZIP_CODE (field 7)
+    COUNTRY   = CLIENT.REC<8>  ;* COUNTRY (field 8)
+    PHONE_NUM = CLIENT.REC<9>  ;* PHONE_NUM MV (field 9)
+    PHONE_TYPE= CLIENT.REC<10> ;* PHONE_TYPE MV (field 10
+   
+   CONVERT @VM TO SVM IN PHONE_NUM
+   CONVERT @VM TO SVM IN PHONE_TYPE
+   OUTPUT.DATA =""
+   OUTPUT.DATA = CLIENT.ID:@VM FNAME:@VM :LNAME:@VM:COMPANY :@VM:ADDRESS :@VM: CITY:@VM:STATE:@VM:ZIP_CODE:@VM: COUNTRY :@VM: PHONE_NUM :@VM:PHONE_TYPE
+   STATUS = "OK"
+   
+
+RETURN
+END

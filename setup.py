@@ -3,9 +3,9 @@ setup.py
 One-time setup script. Run this BEFORE launching app.py.
 
 What it does:
-  1. Scans unidata_source/ for .B files and builds the call dependency graph
+  1. Scans mv_source/ for MV BASIC files (any name, any extension) and builds the call dependency graph
   2. Saves the graph to graph.json
-  3. Ingests all .B and .txt files into ChromaDB (embedding with nomic-embed-text)
+  3. Ingests all MV BASIC and .txt files into ChromaDB (embedding with nomic-embed-text)
 
 Re-run whenever you add/change source files significantly.
 
@@ -18,8 +18,8 @@ from pathlib import Path
 from graph.dependency_graph import build_graph, save_graph
 from rag.ingest import ingest_corpus
 
-SOURCE_DIR = "./unidata_source"   # Place your .B UniData BASIC files here
-DOCS_DIR = "./documents"          # Place .txt contract/schema documents here
+SOURCE_DIR = "./mv_source"    # Place your MV BASIC files here (any name/extension)
+DOCS_DIR = "./documents"      # Place .txt contract/schema/Layout documents here
 GRAPH_PATH = "./graph.json"
 CHROMA_PATH = "./chroma_db"
 
@@ -34,11 +34,15 @@ def check_prerequisites():
             Path(folder).mkdir(parents=True)
             warnings.append(f"Created empty folder: {folder}")
 
-    b_files = list(Path(SOURCE_DIR).rglob("*.B")) + list(Path(SOURCE_DIR).rglob("*.bas"))
-    if not b_files:
+    # Accept ALL files in mv_source regardless of extension
+    # MV files like ORD.PROCESS have .PROCESS as suffix — not empty string
+    source_path = Path(SOURCE_DIR)
+    all_files = [f for f in source_path.rglob("*") if f.is_file()]
+
+    if not all_files:
         errors.append(
-            f"No .B files found in {SOURCE_DIR}\n"
-            "  -> Copy your UniData BASIC source files (.B extension) into this folder."
+            f"No source files found in {SOURCE_DIR}\n"
+            "  -> Copy your MV BASIC source files into this folder."
         )
 
     for w in warnings:
@@ -49,17 +53,19 @@ def check_prerequisites():
             print(f"  ✗  {e}")
         sys.exit(1)
 
-    return b_files
+    return all_files
 
 
 def main():
     print("=" * 60)
-    print("  UniData MV AI POC — Setup")
+    print("  MultiValue AI POC — Setup")
     print("=" * 60)
 
     print("\n[1/3] Checking prerequisites...")
-    b_files = check_prerequisites()
-    print(f"  ✓  Found {len(b_files)} source files")
+    all_files = check_prerequisites()
+    print(f"  ✓  Found {len(all_files)} source files")
+    for f in all_files:
+        print(f"      {f.name}")
 
     print("\n[2/3] Building dependency graph...")
     G = build_graph(SOURCE_DIR)

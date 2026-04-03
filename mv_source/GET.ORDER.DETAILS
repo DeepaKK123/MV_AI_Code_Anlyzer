@@ -1,0 +1,77 @@
+* ============================================================
+* GET.ORDER.DETAILS
+* ============================================================
+* Retrieve a single ORDERS record and return its fields as
+* a VM-delimited output string.
+*
+* Arguments (3-arg convention):
+*   ARG(1) = INPUT.DATA   : VM-delimited  [0]=ORDER.ID
+*   ARG(2) = OUTPUT.DATA  : VM-delimited  (populated below)
+*   ARG(3) = STATUS       : "OK" or "ERROR:<message>"
+*
+* ORDERS record layout (field# = DICT position):
+*   1  ORDER.DATE
+*   2  ORDER.TIME
+*   3  CUST.ID
+*   4  ITEM.IDS       (MV — one value per line item)
+*   5  COLOR.LIST     (MV - matching colors)
+*   6  QTY.LIST       (MV — matching quantities)
+*   7  PRICE.LIST     (MV — matching unit prices)
+* ============================================================
+
+SUBROUTINE GET.ORDER.DETAILS(INPUT.DATA, OUTPUT.DATA, STATUS)
+
+   VM = CHAR(253)
+   SVM = CHAR(252)
+
+   * ── Parse input ─────────────────────────────────────────
+   ORDER.ID = FIELD(INPUT.DATA, VM, 1)
+
+   IF ORDER.ID = "" THEN
+      STATUS = "ERROR:ORDER.ID is required"
+      RETURN
+   END
+
+   * ── Open ORDERS file ────────────────────────────────────
+   OPEN "ORDERS" TO ORDERS.FILE ELSE
+      STATUS = "ERROR:Cannot open ORDERS file"
+      RETURN
+   END
+
+   * ── Read record ──────────────────────────────────────────
+   READ ORDER.REC FROM ORDERS.FILE, ORDER.ID ELSE
+      STATUS = "ERROR:Order ":ORDER.ID:" not found"
+      RETURN
+   END
+   * ── Extract fields ───────────────────────────────────────
+   ORDER.DATE = OCONV(ORDER.REC<1>,"D4/")
+   ORDER.TIME = ORDER.REC<2>
+   CUST.ID    = ORDER.REC<3>
+   ITEM.IDS   = ORDER.REC<4>          ;* MV field — SVM-join for output
+   COLOR.LIST = ORDER.REC<5>
+   QTY.LIST   = ORDER.REC<6>
+   PRICE.LIST = ""
+   FOR ITEM =1 TO DCOUNT(ITEM.IDS,VM)
+      PRICE.LIST<-1> := OCONV(ORDER.REC<7,ITEM>,"MD2"):@VM
+   NEXT ITEM
+   *PRICE.LIST = ORDER.REC<7>
+   TOTAL.AMT = 0
+   FOR NO.ITEM=1 TO DCOUNT(ITEM.IDS,VM)
+      TOTAL.AMT + = QTY.LIST<1,NO.ITEM> * ORDER.REC<7,NO.ITEM>
+   NEXT NO.ITEM
+   TOTAL.AMT = OCONV(TOTAL.AMT,"MD2")
+   
+
+   * Convert MV fields to SVM-delimited strings for transport
+   CONVERT @VM TO SVM IN ITEM.IDS
+   CONVERT @VM TO SVM IN COLOR.LIST
+   CONVERT @VM TO SVM IN QTY.LIST
+   CONVERT @VM TO SVM IN PRICE.LIST
+
+   * ── Pack output ──────────────────────────────────────────
+   OUTPUT.DATA=""
+   OUTPUT.DATA = ORDER.ID:@VM :CUST.ID:@VM:ORDER.DATE :@VM:ORDER.TIME :@VM: ITEM.IDS:@VM:COLOR.LIST:@VM:QTY.LIST:@VM: PRICE.LIST :@VM: TOTAL.AMT
+   
+   STATUS = "OK"
+   RETURN
+END

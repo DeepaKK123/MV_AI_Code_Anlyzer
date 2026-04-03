@@ -1,6 +1,6 @@
 """
 app.py
-Streamlit developer chat interface for the UniData MV AI Code Analyser.
+Streamlit developer chat interface for the MultiValue AI Code Analyser.
 
 Run with:
     streamlit run app.py
@@ -11,16 +11,16 @@ Subsequent queries use the cached engine.
 
 import streamlit as st
 from pathlib import Path
-from analysis.query_engine import MVAnalysisEngine
+from analysis.query_engine import MVAnalysisEngine, get_quick_reply
 
 # ── Page config ──────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="UniData MV AI Analyser",
+    page_title="MultiValue MV AI Analyser",
     page_icon="🔍",
     layout="wide",
 )
 
-st.title("🔍 UniData MV Code Analyser")
+st.title("🔍 MultiValue Code Analyser")
 st.caption("Analysis and explanation only — no code changes are proposed.")
 
 # ── Pre-flight check: required files must exist ──────────────────────────────
@@ -99,7 +99,7 @@ if "messages" not in st.session_state:
 # Display existing chat history
 for msg in st.session_state["messages"]:
     with st.chat_message(msg["role"]):
-        st.write(msg["content"])
+        st.markdown(msg["content"])
         if msg.get("impact"):
             with st.expander("📈 Dependency graph data"):
                 st.json(msg["impact"])
@@ -111,7 +111,7 @@ for msg in st.session_state["messages"]:
 
 # ── Chat input ───────────────────────────────────────────────────────────────
 prefill = st.session_state.pop("prefill_question", None)
-question = st.chat_input("Ask about your UniData codebase...") or prefill
+question = st.chat_input("Ask about your MV codebase...") or prefill
 
 if question:
     # Display user message
@@ -121,36 +121,62 @@ if question:
 
     # Run analysis
     with st.chat_message("assistant"):
-        with st.spinner("Analysing... (first query may take 15-40 seconds on CPU)"):
-            try:
-                result = engine.analyse(
-                    question,
-                    subroutine_name=subroutine.strip() if subroutine else None,
-                )
+        try:
+            # ── Quick reply check first (greetings) ──────────────────────
+            quick = get_quick_reply(question)
+            if quick:
+                st.markdown(quick)
+                st.session_state["messages"].append({
+                    "role": "assistant",
+                    "content": quick,
+                    "impact": {},
+                    "sources": [],
+                })
 
-                st.write(result["answer"])
+            else:
+                # ── Spinner shows while RAG + graph lookup runs ───────────
+                # prepare() does all the heavy work BEFORE streaming starts
+                with st.spinner("Analysing your codebase..."):
+                    result = engine.prepare(
+                        question,
+                        subroutine_name=subroutine.strip() if subroutine else None,
+                    )
 
+                # ── Stream tokens word by word once spinner is done ───────
+                collected = []
+                placeholder = st.empty()
+                display_text = ""
+                for chunk in engine.stream(result["prompt"]):
+                    if chunk:
+                        collected.append(chunk)
+                        display_text += chunk
+                        placeholder.markdown(display_text)
+                full_answer = "".join(collected)
+
+                # ── Dependency graph expander ─────────────────────────────
                 if result.get("impact") and "error" not in result["impact"]:
                     with st.expander("📈 Dependency graph data"):
                         st.json(result["impact"])
 
+                # ── Source files expander ─────────────────────────────────
                 if result.get("sources"):
                     with st.expander("📁 Source files referenced"):
                         for s in set(result["sources"]):
                             if s:
                                 st.code(s)
 
+                # ── Save to chat history ──────────────────────────────────
                 st.session_state["messages"].append({
                     "role": "assistant",
-                    "content": result["answer"],
+                    "content": full_answer,
                     "impact": result.get("impact", {}),
                     "sources": result.get("sources", []),
                 })
 
-            except Exception as e:
-                error_msg = f"⚠️ Analysis error: {str(e)}\n\nCheck that Ollama is running (`ollama serve`) and models are pulled."
-                st.error(error_msg)
-                st.session_state["messages"].append({
-                    "role": "assistant",
-                    "content": error_msg,
-                })
+        except Exception as e:
+            error_msg = f"⚠️ Analysis error: {str(e)}\n\nCheck that Ollama is running (`ollama serve`) and models are pulled."
+            st.error(error_msg)
+            st.session_state["messages"].append({
+                "role": "assistant",
+                "content": error_msg,
+            })
